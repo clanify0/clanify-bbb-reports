@@ -1,0 +1,54 @@
+name: BuiltByBit Reports
+
+on:
+  schedule:
+    - cron: "17 14 * * *"
+
+  workflow_dispatch:
+    inputs:
+      period:
+        description: "Report period"
+        required: true
+        default: "7"
+        type: choice
+        options:
+          - "7"
+          - "30"
+          - "90"
+          - "365"
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    env:
+      BBB_API_TOKEN: ${{ secrets.BBB_API_TOKEN }}
+      GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      REPORT_START_DATE: "2026-09-21"
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Generate report
+        env:
+          MANUAL_PERIOD: ${{ inputs.period }}
+        run: |
+          if [ -n "$MANUAL_PERIOD" ]; then
+            python report.py --period "$MANUAL_PERIOD"
+          else
+            python report.py --scheduled
+          fi
