@@ -1,0 +1,52 @@
+name: BuiltByBit Purchase Watch
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "What should the watcher do?"
+        required: true
+        default: "check"
+        type: choice
+        options:
+          - "check"
+          - "test-email"
+
+permissions:
+  contents: read
+
+jobs:
+  purchase-watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+
+    env:
+      BBB_API_TOKEN: ${{ secrets.BBB_API_TOKEN }}
+      GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Check BuiltByBit purchases
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          if [ "$MODE" = "test-email" ]; then
+            python purchase_watcher.py --test
+          else
+            python purchase_watcher.py
+          fi
